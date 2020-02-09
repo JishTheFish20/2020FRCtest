@@ -188,18 +188,18 @@ public class DriveTrain extends SubsystemBase {
 
 		SmartDashboard.putNumber("SetAngle", setangle);
 
-		double angle = navx.getYaw();
+		// double angle = navx.getYaw();
 
-		error = (setangle - angle);
+		// error = (setangle - angle);
 
-		integral += error*0.02;
+		// integral += error*0.02;
 
-	    derivative = (error - this.prevError) / .02;
+	  //   derivative = (error - this.prevError) / .02;
 		
-		speed = error*P + integral*I + derivative*D;
+		// speed = error*P + integral*I + derivative*D;
 
-	    robot.tankDrive(speed, -speed);
-		prevError = error;
+	  //   robot.tankDrive(speed, -speed);
+		// prevError = error;
 
   }
 
