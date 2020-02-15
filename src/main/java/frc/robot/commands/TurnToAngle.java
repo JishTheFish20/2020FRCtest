@@ -10,20 +10,21 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.robot.subsystems.DriveTrain;
 
-public class DriveSetDistance extends CommandBase {
+public class TurnToAngle extends CommandBase {
   /**
-   * Creates a new DriveSetDistance.
+   * Creates a new TurnToAngle.
    */
 
-   private DriveTrain driveTrain;
-   private double maxPower;
-   private int distance;
-   
-  public DriveSetDistance(DriveTrain subsystem, double maxPower, int distance) {
+  private DriveTrain driveTrain;
+  private double maxPower;
+  private double angle;
+
+
+  public TurnToAngle(DriveTrain subsystem, double maxPower, double angle) {
     driveTrain = subsystem;
     addRequirements(driveTrain);
     this.maxPower = maxPower;
-    this.distance = distance;
+    this.angle = angle;
   }
 
   // Called when the command is initially scheduled.
@@ -34,8 +35,7 @@ public class DriveSetDistance extends CommandBase {
   // Called every time the scheduler runs while the command is scheduled.
   @Override
   public void execute() {
-    //driveTrain.DriveSetDistance(power, turnSpeed, distance);
-    driveTrain.DriveSetDistancePID(distance, maxPower);
+    driveTrain.TurnToAnglePID(angle, maxPower);
   }
 
   // Called once the command ends or is interrupted.

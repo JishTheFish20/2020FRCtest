@@ -10,6 +10,7 @@ package frc.robot.subsystems;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import com.kauailabs.navx.frc.AHRS;
 //import com.kauailabs.navx.frc.AHRS;
 //import com.kauailabs.navx.frc.AHRS;
 //import com.kauailabs.navx.frc.AHRS;
@@ -68,15 +69,28 @@ public class DriveTrain extends SubsystemBase {
 
    private double x,y;
 
-   private double P,I,D, error, angle, setangle,integral;
+   private double Kp,Ki,Kd, error, setPosition, integral, power;
 
-   //public AHRS navx;
+   private double Kpa, Kia, Kda, errora, setPositiona, integrala, powera;
+
+   private AHRS navx;
+
+   private XboxController xbox;
 
    private DifferentialDrive robot;
 
    private DifferentialDriveOdometry odometry;
+
+   private boolean gotToSetDistance, gotToSetAngle;
    
   public DriveTrain() {
+
+    Kp = 0.025;
+    Ki = 0.15;
+
+    Kpa = 0.022;
+    Kia = 0.08;
+
     FrontLeft = new CANSparkMax(DTL_IDs[0], MotorType.kBrushless);
     BackLeft = new CANSparkMax(DTL_IDs[1], MotorType.kBrushless);
     FrontRight = new CANSparkMax(DTR_IDs[0], MotorType.kBrushless);
@@ -112,7 +126,9 @@ public class DriveTrain extends SubsystemBase {
 
     robot = new DifferentialDrive(LeftDrive, RightDrive);
 
-  // navx = new AHRS(Constants.NAVX_PORT);
+    navx = new AHRS(Constants.NAVX_PORT);
+
+    xbox = new XboxController(0);
 
     odometry = new DifferentialDriveOdometry(Rotation2d.fromDegrees(getHeading()));
   }
@@ -131,23 +147,7 @@ public class DriveTrain extends SubsystemBase {
     y = joy.getY(Hand.kLeft);
     x = joy.getX(Hand.kRight);
 
-    // if(Math.abs(x) < 0.1){
-    //   x = 0;
-    // }
-    // if(Math.abs(y) < 0.1){
-    //   y = 0;
-    // }
-
-    // x *= x;
-    // y *= y;
-
-    // if(joy.getX(Hand.kRight) < 0){
-    //   x *= -1;
-    // }
-    // if(joy.getY(Hand.kLeft) < 0){
-    //   y *= -1;
-    // }
-    robot.arcadeDrive(y*0.5 , -x*0.5);
+   robot.arcadeDrive(y*0.5 , -x*0.5);
   }
 
   public void SingleJoystickTiltArcade(Joystick joy){
@@ -171,62 +171,81 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public void DriveSetDistance(double powerForward, double turnPower, int distance){
-    if(getOverAllAveragePosition() <= distance){
-    robot.arcadeDrive(powerForward, turnPower);
+    if(xbox.getBButton()){
+    if(getOverAllAveragePosition() < distance){
+    robot.curvatureDrive(powerForward, turnPower, false);
+    System.out.print("run");
     }else{
       robot.stopMotor();
     }
-
-
+   }
   }
 
-  public void turnTo(double setangle){
-    //setangle = this.setangle;
-		P = SmartDashboard.getNumber("P", 0.01);
-		I = SmartDashboard.getNumber("I", 0.1);
-		D = SmartDashboard.getNumber("D", 0);
+  public void DriveSetDistancePID(int distance, double maxPower){
+    error = (distance - getOverAllAveragePosition());
 
-		SmartDashboard.putNumber("SetAngle", setangle);
+    if(Math.abs(error) < 0.7) {
+      integral += (error*.02);
+    } else {
+      integral = 0;
+    }
 
-		// double angle = navx.getYaw();
+    power = (Kp*error + Ki*integral) + 0.01;
 
-		// error = (setangle - angle);
+    if(power > maxPower) {
+      power = maxPower;
+    }
 
-		// integral += error*0.02;
+    if(Math.abs(error) <= 0.2){
+      gotToSetDistance = true;
+    }else{
+      gotToSetDistance = false;
+    }
 
-	  //   derivative = (error - this.prevError) / .02;
-		
-		// speed = error*P + integral*I + derivative*D;
-
-	  //   robot.tankDrive(speed, -speed);
-		// prevError = error;
-
+    robot.curvatureDrive(-power, 0, false);
   }
 
-  // public void tankDrive(XboxController joy){
-  //   robot.arcadeDrive(joy.getY(Hand.kLeft), joy.getX(Hand.kRight));
-  // }
+  public void TurnToAnglePID(double angle, double maxPowera){
+    errora = (angle - navx.getYaw());
 
-  // public void tankDrive(XboxController joy){
-  //   robot.arcadeDrive(joy.getY(Hand.kLeft), joy.getX(Hand.kRight));
-  // }
+    if(Math.abs(errora) < 2) {
+      integrala += (errora*.02);
+    } else {
+      integrala = 0;
+    }
 
-  public void PathWeaverPath(){
-    // try {
-    //   Path trajectoryPath = Filesystem.getDeployDirectory().toPath().resolve(trajectoryJSON);
-    //   Trajectory trajectory = TrajectoryUtil.fromPathweaverJson(trajectoryPath);
-    // } catch (IOException ex) {
-    //   DriverStation.reportError("Unable to open trajectory: " + trajectoryJSON, ex.getStackTrace());
-    // }
+    powera = (Kpa*errora + Kia*integrala);
+
+    if(powera > maxPowera) {
+      powera = maxPowera;
+    }
+
+    if(Math.abs(errora) <= 0.5){
+      gotToSetAngle = true;
+    }else{
+      gotToSetAngle = false;
+    }
+
+    robot.tankDrive(-powera, powera);
   }
-
-  // public void followPath(){
-  //   // Trajectory.State goal = trajectory.sample(3.4); // sample the trajectory at 3.4 seconds from the beginning
-  //   // ChassisSpeeds adjustedSpeeds = controller.calculate(currentRobotPose, goal);
-  // }
 
   public void stop(){
     robot.stopMotor();
+  }
+
+  public void restEncoders(){
+    if(xbox.getAButton()){
+    FrontLeftEnc.setPosition(0);
+    BackLeftEnc.setPosition(0);
+    FrontRightEnc.setPosition(0);
+    BackRightEnc.setPosition(0);
+    }
+  }
+
+  public void restAngle(){
+    if(xbox.getYButton()){
+      navx.reset();
+    }
   }
 
   public double getFrontRightRPM(){
@@ -250,7 +269,7 @@ public class DriveTrain extends SubsystemBase {
   }
 
   public double getLeftAveragePostition(){
-    return ((FrontLeftEnc.getPosition() + BackLeftEnc.getPosition()) / 2);
+    return -((FrontLeftEnc.getPosition() + BackLeftEnc.getPosition()) / 2);
   }
 
   public double getRightAveragePostition(){
@@ -288,8 +307,22 @@ public class DriveTrain extends SubsystemBase {
     SmartDashboard.putNumber("FrontLeftEnc", getFrontLeftRPM());
     SmartDashboard.putNumber("BackRightEnc", getBackRightRPM());
     SmartDashboard.putNumber("BackLeftEnc", getBackLeftRPM());
+    SmartDashboard.putNumber("OverallAverage", getOverAllAveragePosition());
+    SmartDashboard.putNumber("LeftEnc", getLeftAveragePostition());
+    SmartDashboard.putNumber("RightEnc", getRightAveragePostition());
     SmartDashboard.putNumber("Y", y);
+    SmartDashboard.putNumber("Power", power);
+    SmartDashboard.putNumber("AnglePower", powera);
+    SmartDashboard.putNumber("Integral", integral);
+    SmartDashboard.putNumber("AngleIntegral", integrala);
+    SmartDashboard.putBoolean("AtSetPosition", gotToSetDistance);
+    SmartDashboard.putBoolean("AtSetAngle", gotToSetAngle);
+    SmartDashboard.putNumber("Yaw", navx.getYaw());
     //sSmartDashboard.putNumber("Yaw", navx.getYaw());
+
+    restEncoders();
+    restAngle();
+    //DriveSetDistance(0.2, 0, 5);
 
   }
 }

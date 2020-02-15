@@ -11,10 +11,12 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import frc.robot.commands.DriveSetDistance;
 import frc.robot.commands.LimeLightTracking;
 import frc.robot.commands.MoveShooterIntake;
 import frc.robot.commands.SpinShooter;
 import frc.robot.commands.Tracking;
+import frc.robot.commands.TurnToAngle;
 //import frc.robot.commands.StopDrive;
 import frc.robot.commands.XboxControllerSplitArcade;
 import frc.robot.subsystems.DriveTrain;
@@ -72,6 +74,8 @@ public class RobotContainer {
    * {@link edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
   private void configureButtonBindings() {
+    new JoystickButton(Driver, 2).whenHeld(new DriveSetDistance(driveTrain, 0.2, 10));
+    new JoystickButton(Driver, 3).whenHeld(new TurnToAngle(driveTrain, 0.25, 130));
 
     //new JoystickButton(Driver, 1).whenHeld(limeLightTracking);
     //new JoystickButton(Driver, Driver.getAButton()).
